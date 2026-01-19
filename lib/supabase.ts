@@ -6,22 +6,71 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 // 创建 Supabase 客户端（构建时兼容模式）
 let supabaseClient;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  // 在构建时，我们创建一个假的客户端，避免构建失败
-  // 在运行时，页面会显示配置错误信息
-  console.warn('⚠️ Supabase 环境变量未配置。应用将在运行时显示配置提示。');
+// 检查是否是客户端环境
+const isClient = typeof window !== 'undefined';
 
-  // 返回一个假的客户端，避免构建失败
+if (!supabaseUrl || !supabaseAnonKey) {
+  if (isClient) {
+    // 客户端运行时：显示详细错误
+    console.error('❌ Supabase 环境变量未配置！请检查：');
+    console.error('1. Vercel 环境变量配置：');
+    console.error('   - NEXT_PUBLIC_SUPABASE_URL');
+    console.error('   - NEXT_PUBLIC_SUPABASE_ANON_KEY');
+    console.error('2. 当前值：');
+    console.error(`   - URL: ${supabaseUrl || '未设置'}`);
+    console.error(`   - Key: ${supabaseAnonKey ? '已设置（隐藏）' : '未设置'}`);
+
+    // 在页面上显示错误（可选）
+    if (typeof document !== 'undefined') {
+      const errorDiv = document.createElement('div');
+      errorDiv.style.cssText = `
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: #f44336;
+        color: white;
+        padding: 15px;
+        border-radius: 5px;
+        z-index: 9999;
+        max-width: 400px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      `;
+      errorDiv.innerHTML = `
+        <strong>⚠️ 配置错误</strong><br>
+        Supabase 环境变量未配置。<br>
+        请检查 Vercel 环境变量设置。
+      `;
+      document.body.appendChild(errorDiv);
+    }
+  }
+
+  // 返回一个完整的假客户端，避免构建失败和运行时错误
   const fakeClient = {
-    from: () => ({
-      select: () => Promise.resolve({ data: [], error: null }),
-      insert: () => Promise.resolve({ data: [], error: null }),
-      delete: () => Promise.resolve({ error: null }),
-      eq: () => ({
-        select: () => Promise.resolve({ data: [], error: null }),
-        order: () => Promise.resolve({ data: [], error: null })
+    from: (table: string) => ({
+      select: (columns?: string) => ({
+        eq: (column: string, value: any) => ({
+          order: (column: string, options?: { ascending: boolean }) =>
+            Promise.resolve({ data: [], error: null })
+        }),
+        order: (column: string, options?: { ascending: boolean }) =>
+          Promise.resolve({ data: [], error: null })
       }),
-      order: () => Promise.resolve({ data: [], error: null })
+      insert: (data: any) => ({
+        select: (columns?: string) => Promise.resolve({ data: [], error: null })
+      }),
+      delete: () => ({
+        neq: (column: string, value: any) => Promise.resolve({ error: null })
+      }),
+      eq: (column: string, value: any) => ({
+        select: (columns?: string) => ({
+          order: (column: string, options?: { ascending: boolean }) =>
+            Promise.resolve({ data: [], error: null })
+        }),
+        order: (column: string, options?: { ascending: boolean }) =>
+          Promise.resolve({ data: [], error: null })
+      }),
+      order: (column: string, options?: { ascending: boolean }) =>
+        Promise.resolve({ data: [], error: null })
     })
   } as any;
 
@@ -29,6 +78,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
 } else {
   // 环境变量已配置，创建真实的 Supabase 客户端
   supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+
+  if (isClient) {
+    console.log('✅ Supabase 客户端已成功初始化');
+  }
 }
 
 export const supabase = supabaseClient;
