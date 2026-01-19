@@ -27,12 +27,12 @@ export function parseExcelFile(file: File): Promise<{
     reader.onload = (e) => {
       try {
         const data = e.target?.result;
-        if (!data) {
+        if (!data || !(data instanceof ArrayBuffer)) {
           reject(new Error('无法读取文件'));
           return;
         }
 
-        const workbook = XLSX.read(data, { type: 'binary' });
+        const workbook = XLSX.read(data, { type: 'array' });
         const result = parseWorkbook(workbook);
         resolve(result);
       } catch (error) {
@@ -44,7 +44,7 @@ export function parseExcelFile(file: File): Promise<{
       reject(new Error('读取文件失败'));
     };
 
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   });
 }
 
@@ -64,7 +64,7 @@ function parseWorkbook(workbook: XLSX.WorkBook): {
     if (jsonData.length === 0) return;
 
     // 尝试根据列名判断数据类型
-    const firstRow = jsonData[0];
+    const firstRow = jsonData[0] as Record<string, any>;
     const columns = Object.keys(firstRow);
 
     // 检查是否包含工资数据相关列
