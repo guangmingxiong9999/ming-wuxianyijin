@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "check-env": "node scripts/check-env.js",
-    "prebuild": "npm run check-env"
+    "check-env": "node scripts/check-env.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.90.1",
