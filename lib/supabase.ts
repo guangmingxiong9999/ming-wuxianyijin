@@ -3,8 +3,22 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+// 开发环境详细错误提示
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('缺少 Supabase 环境变量配置。请检查 .env.local 文件。');
+  const errorMessage = process.env.NODE_ENV === 'development'
+    ? `缺少 Supabase 环境变量配置。请检查：
+       1. 本地开发：确保 .env.local 文件存在并包含：
+          NEXT_PUBLIC_SUPABASE_URL=your_project_url
+          NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+       2. Vercel 部署：在项目设置中添加环境变量：
+          - NEXT_PUBLIC_SUPABASE_URL
+          - NEXT_PUBLIC_SUPABASE_ANON_KEY
+       当前值：
+         NEXT_PUBLIC_SUPABASE_URL: ${supabaseUrl || '未设置'}
+         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${supabaseAnonKey ? '已设置（隐藏）' : '未设置'}`
+    : '缺少 Supabase 环境变量配置。请在 Vercel 项目设置中配置环境变量。';
+
+  throw new Error(errorMessage);
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
